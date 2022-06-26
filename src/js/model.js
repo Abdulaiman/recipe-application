@@ -2,6 +2,7 @@ import { async } from 'regenerator-runtime';
 import { API_URL } from './config.js';
 import { getJson } from './helpers.js';
 import { RESULT_PER_PAGE } from './config.js';
+// import { findIndex } from 'core-js/core/array';
 console.log(RESULT_PER_PAGE);
 export const state = {
   recipe: {},
@@ -11,6 +12,7 @@ export const state = {
     resultPerPage: RESULT_PER_PAGE,
     page: 1,
   },
+  bookmarks: [],
 };
 
 export const loadRecipe = async id => {
@@ -30,6 +32,9 @@ export const loadRecipe = async id => {
       cookingTime: recipe.cooking_time,
       ingredients: recipe.ingredients,
     };
+    if (state.bookmarks.some(bookmark => bookmark.id === id))
+      state.recipe.bookmarked = true;
+    else state.recipe.bookmarked = false;
   } catch (error) {
     throw error;
   }
@@ -47,6 +52,7 @@ export const loadSearchResult = async function (query) {
         image: rec.image_url,
       };
     });
+    state.search.page = 1;
   } catch (error) {
     throw error;
   }
@@ -59,6 +65,9 @@ export const getSearchResultPage = function (page = state.search.page) {
   return state.search.result.slice(start, end);
 };
 // getSearchResultPage(1);
+const persistBookmarks = () => {
+  localStorage.setItem('bookmarks', JSON.stringify(state.bookmarks));
+};
 export const updateServings = newServings => {
   state.recipe.ingredients.forEach(ing => {
     ing.quantity = (ing.quantity * newServings) / state.recipe.servings;
@@ -66,3 +75,21 @@ export const updateServings = newServings => {
   });
   state.recipe.servings = newServings;
 };
+export const addBookmark = recipe => {
+  state.bookmarks.push(recipe);
+
+  if (recipe.id === state.recipe.id) state.recipe.bookmarked = true;
+  persistBookmarks();
+};
+export const deleteBookmark = id => {
+  const index = state.bookmarks.findIndex(el => el.id === id);
+  state.bookmarks.splice(index, 1);
+  if (id === state.recipe.id) state.recipe.bookmarked = false;
+  persistBookmarks();
+};
+const init = () => {
+  const storage = localStorage.getItem('bookmarks');
+  if (storage) state.bookmarks = JSON.parse(storage);
+};
+init();
+console.log(state.bookmarks);
